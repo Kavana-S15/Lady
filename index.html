@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fb">
+  <title>Traceflow AI — Security workspace</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17243b;
+      --muted: #78859a;
+      --line: #e8edf4;
+      --canvas: #f5f7fb;
+      --white: #fff;
+      --navy: #111d33;
+      --blue: #4268ef;
+      --blue-light: #edf1ff;
+      --green: #159b72;
+      --red: #df5964;
+      --amber: #db9234;
+      --shadow: 0 8px 26px rgba(34, 52, 83, .055);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--canvas);
+      color: var(--ink);
+      font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button { font: inherit; }
+    .app { display: flex; min-height: 100vh; }
+    .sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 3;
+      display: flex;
+      width: 244px;
+      flex-direction: column;
+      padding: 25px 16px 18px;
+      background: var(--navy);
+      color: #b6c1d3;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 11px 33px; color: white; }
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 11px;
+      background: linear-gradient(145deg, #6e8cff, #4165ec);
+      box-shadow: 0 5px 16px #4165ec44;
+    }
+    .brand-mark svg { width: 19px; height: 19px; }
+    .brand-name { font-size: 17px; font-weight: 720; letter-spacing: -.5px; }
+    .brand-name span { color: #93a8ff; }
+    .nav-label { padding: 0 12px 10px; color: #66748b; font-size: 10px; font-weight: 750; letter-spacing: 1.15px; text-transform: uppercase; }
+    .nav { display: grid; gap: 5px; }
+    .nav-item {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 12px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #aab6c9;
+      cursor: pointer;
+      text-align: left;
+      transition: background .16s, color .16s;
+    }
+    .nav-item:hover { background: #ffffff0b; color: white; }
+    .nav-item.active { background: #273653; color: white; }
+    .nav-icon { display: grid; width: 18px; place-items: center; color: #96a6c0; font-size: 16px; }
+    .nav-item.active .nav-icon { color: #94aaff; }
+    .nav-count { margin-left: auto; border-radius: 20px; padding: 1px 7px; background: #493643; color: #ff9a9c; font-size: 11px; }
+    .side-target {
+      margin-top: 30px;
+      padding: 14px 12px;
+      border: 1px solid #ffffff10;
+      border-radius: 10px;
+      background: #ffffff06;
+    }
+    .side-target-title { margin-bottom: 12px; color: #73819a; font-size: 10px; font-weight: 750; letter-spacing: 1px; text-transform: uppercase; }
+    .target-line { display: flex; align-items: center; gap: 9px; color: #e7edf7; font-size: 12px; font-weight: 600; }
+    .target-dot { width: 8px; height: 8px; border-radius: 50%; background: #42c69a; box-shadow: 0 0 0 3px #42c69a20; }
+    .target-address { margin: 5px 0 0 17px; color: #7e8ba2; font-size: 10px; }
+    .side-footer { display: flex; align-items: center; gap: 10px; margin-top: auto; padding: 17px 8px 0; border-top: 1px solid #ffffff12; }
+    .avatar { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: #34445f; color: #dce5f8; font-size: 11px; font-weight: 700; }
+    .profile-name { color: white; font-size: 12px; font-weight: 600; }
+    .profile-role { color: #8190a7; font-size: 10px; }
+    .main { width: calc(100% - 244px); min-height: 100vh; margin-left: 244px; }
+    .topbar {
+      display: flex;
+      height: 68px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 38px;
+      border-bottom: 1px solid var(--line);
+      background: #ffffffd9;
+    }
+    .crumb { color: #8b97a9; font-size: 12px; }
+    .crumb strong { color: #34425a; font-weight: 600; }
+    .top-actions { display: flex; align-items: center; gap: 18px; }
+    .env-pill, .safe-pill { display: inline-flex; align-items: center; gap: 7px; border-radius: 20px; padding: 6px 10px; font-size: 11px; font-weight: 650; }
+    .env-pill { background: #eef7f3; color: #258568; }
+    .safe-pill { background: #f0f3f8; color: #718097; }
+    .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .icon-button { display: grid; width: 32px; height: 32px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #78859a; cursor: pointer; font-size: 17px; }
+    .icon-button:hover { background: #f2f4f8; }
+    .content { width: min(1420px, 100%); margin: 0 auto; padding: 30px 38px 44px; }
+    .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 24px; }
+    h1 { margin: 0; color: #1c2a42; font-size: 25px; font-weight: 700; letter-spacing: -.75px; }
+    .subtitle { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+    .heading-actions { display: flex; align-items: center; gap: 9px; }
+    .button {
+      display: inline-flex;
+      min-height: 37px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 13px;
+      border: 1px solid #dfe5ef;
+      border-radius: 7px;
+      background: white;
+      color: #536177;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 650;
+      transition: .15s ease;
+    }
+    .button:hover { border-color: #b8c5dd; background: #fbfcff; }
+    .button.primary { border-color: var(--blue); background: var(--blue); color: white; box-shadow: 0 3px 8px #4268ef2a; }
+    .button.primary:hover { background: #3459df; }
+    .button:disabled { cursor: wait; opacity: .7; }
+    .button-icon { font-size: 15px; line-height: 1; }
+    .target-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding: 15px 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: white;
+      box-shadow: var(--shadow);
+    }
+    .target-info { display: flex; align-items: center; gap: 13px; min-width: 0; }
+    .bank-mark { display: grid; width: 40px; height: 40px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: #eff3ff; color: #4567e9; font-size: 18px; font-weight: 750; }
+    .target-title { color: #2a3851; font-size: 13px; font-weight: 700; }
+    .target-url { margin-top: 2px; color: #8490a2; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+    .target-badges { display: flex; align-items: center; gap: 8px; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 5px; padding: 4px 7px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .badge.local { background: #edf7f3; color: #288267; }
+    .badge.demo { background: #f3f5f9; color: #78859a; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .metric-card, .panel { border: 1px solid var(--line); border-radius: 10px; background: white; box-shadow: var(--shadow); }
+    .metric-card { position: relative; min-height: 116px; padding: 16px 17px; overflow: hidden; }
+    .metric-label { color: #77849a; font-size: 11px; font-weight: 600; }
+    .metric-value-row { display: flex; align-items: baseline; gap: 9px; margin-top: 10px; }
+    .metric-value { color: #1d2b43; font-size: 28px; font-weight: 720; letter-spacing: -1px; line-height: 1; }
+    .metric-note { color: #98a2b1; font-size: 10px; }
+    .metric-icon { position: absolute; top: 15px; right: 15px; display: grid; width: 30px; height: 30px; place-items: center; border-radius: 8px; background: #f3f5ff; color: #607af1; font-size: 15px; }
+    .metric-card.risk .metric-icon { background: #fff0ef; color: var(--red); }
+    .metric-card.resolved .metric-icon { background: #edf8f3; color: var(--green); }
+    .metric-card.scan .metric-icon { background: #f2f5f8; color: #72839a; }
+    .risk-track { width: 100%; height: 4px; margin-top: 12px; border-radius: 4px; background: #edf0f5; }
+    .risk-fill { width: 69%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f3bd58, #e46c67); transition: width .4s; }
+    .main-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(260px, .92fr); gap: 16px; align-items: start; }
+    .panel { overflow: hidden; }
+    .panel-head { display: flex; min-height: 55px; align-items: center; justify-content: space-between; gap: 12px; padding: 0 17px; border-bottom: 1px solid #edf0f5; }
+    .panel-title { color: #283650; font-size: 12px; font-weight: 700; }
+    .panel-subtitle { margin-top: 2px; color: #96a0ae; font-size: 10px; }
+    .text-link { border: 0; background: transparent; color: #4c6de3; cursor: pointer; font-size: 11px; font-weight: 650; }
+    .text-link:hover { color: #294dcc; }
+    .posture-body { display: grid; grid-template-columns: 170px minmax(0, 1fr); align-items: center; gap: 19px; padding: 19px 18px 17px; }
+    .score-wrap { position: relative; display: grid; width: 146px; height: 146px; place-items: center; margin: auto; }
+    .score-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+    .score-ring circle { fill: none; stroke-width: 9; }
+    .score-ring .track { stroke: #f0f2f6; }
+    .score-ring .progress { stroke: #e8a34c; stroke-linecap: round; stroke-dasharray: 276; stroke-dashoffset: 161; transition: stroke-dashoffset .45s, stroke .45s; }
+    .score-center { text-align: center; }
+    .score-number { color: #263650; font-size: 35px; font-weight: 730; letter-spacing: -1.5px; line-height: 1.1; }
+    .score-caption { margin-top: 4px; color: #8b97a9; font-size: 10px; }
+    .score-status { display: inline-flex; margin-top: 9px; border-radius: 4px; padding: 3px 7px; background: #fff4e5; color: #bd7929; font-size: 9px; font-weight: 750; letter-spacing: .45px; text-transform: uppercase; }
+    .posture-details { display: grid; gap: 14px; }
+    .posture-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .posture-label { display: flex; align-items: center; gap: 8px; color: #637087; font-size: 11px; }
+    .severity-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .severity-dot.critical { background: #dc6269; }
+    .severity-dot.high { background: #eb9a4a; }
+    .severity-dot.medium { background: #e8c35a; }
+    .severity-dot.low { background: #5da98b; }
+    .posture-count { min-width: 20px; color: #47546b; font-size: 11px; font-weight: 700; text-align: right; }
+    .mini-track { width: 86px; height: 4px; border-radius: 4px; background: #eff1f5; }
+    .mini-fill { height: 100%; border-radius: inherit; }
+    .mini-fill.critical { width: 0%; background: #dc6269; }
+    .mini-fill.high { width: 50%; background: #eb9a4a; }
+    .mini-fill.medium { width: 100%; background: #e8c35a; }
+    .mini-fill.low { width: 50%; background: #5da98b; }
+    .chart-panel { margin-top: 16px; }
+    .chart-legend { display: flex; align-items: center; gap: 13px; color: #8792a3; font-size: 9px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-dot { width: 7px; height: 7px; border-radius: 2px; background: #5c7bf0; }
+    .legend-dot.resolved { background: #71c3a2; }
+    .chart-body { padding: 12px 18px 13px; }
+    .chart { display: flex; height: 112px; align-items: end; justify-content: space-around; gap: 12px; padding: 4px 5px 0; border-bottom: 1px solid #edf0f5; background: repeating-linear-gradient(to bottom, transparent 0, transparent 27px, #f0f2f6 28px); }
+    .bar-group { display: flex; height: 100%; flex: 1; align-items: end; justify-content: center; gap: 4px; }
+    .bar { width: min(18px, 27%); min-width: 8px; border-radius: 3px 3px 0 0; background: #6682f0; transition: height .35s; }
+    .bar.resolved { background: #83c9ad; }
+    .chart-labels { display: flex; justify-content: space-around; padding: 7px 4px 0; color: #9aa4b2; font-size: 9px; }
+    .findings-panel .panel-head { min-height: 57px; }
+    .finding-list { display: grid; }
+    .finding {
+      display: grid;
+      grid-template-columns: 4px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 71px;
+      padding: 12px 15px 12px 0;
+      border-bottom: 1px solid #f0f2f6;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .finding:last-child { border-bottom: 0; }
+    .finding:hover { background: #fafbfe; }
+    .finding-stripe { align-self: stretch; border-radius: 0 3px 3px 0; background: #e59b4c; }
+    .finding-stripe.high { background: #df6970; }
+    .finding-stripe.medium { background: #e4bb4d; }
+    .finding-stripe.low { background: #65a98b; }
+    .finding-name { color: #38465e; font-size: 11px; font-weight: 650; }
+    .finding-meta { display: flex; flex-wrap: wrap; gap: 5px 8px; margin-top: 4px; color: #9aa3b0; font-size: 9px; }
+    .finding-tag { border-radius: 3px; padding: 2px 5px; font-size: 8px; font-weight: 750; letter-spacing: .3px; text-transform: uppercase; }
+    .finding-tag.high { background: #fff0ee; color: #ca585e; }
+    .finding-tag.medium { background: #fff7e7; color: #ae7a2c; }
+    .finding-tag.low { background: #edf7f2; color: #39836b; }
+    .finding-arrow { color: #a4adba; font-size: 15px; }
+    .right-column { display: grid; gap: 16px; }
+    .target-preview { padding: 15px 16px 16px; }
+    .preview-header { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
+    .preview-logo { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 9px; background: #142b54; color: white; font-size: 10px; font-weight: 800; letter-spacing: -.3px; }
+    .preview-name { color: #2f3c53; font-size: 11px; font-weight: 700; }
+    .preview-url { color: #9aa3af; font-size: 9px; }
+    .preview-status { margin-left: auto; border-radius: 4px; padding: 4px 6px; background: #fff1ef; color: #cf5e60; font-size: 8px; font-weight: 750; text-transform: uppercase; }
+    .preview-stats { display: grid; grid-template-columns: repeat(3, 1fr); padding: 11px 0 12px; border-top: 1px solid #edf0f5; border-bottom: 1px solid #edf0f5; }
+    .preview-stat { text-align: center; }
+    .preview-stat + .preview-stat { border-left: 1px solid #edf0f5; }
+    .preview-number { color: #344158; font-size: 16px; font-weight: 700; }
+    .preview-label { color: #97a1ae; font-size: 9px; }
+    .preview-button { width: 100%; margin-top: 13px; }
+    .activity-list { display: grid; gap: 15px; padding: 15px 17px 17px; }
+    .activity-item { display: flex; align-items: flex-start; gap: 10px; }
+    .activity-icon { display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; border-radius: 7px; background: #f0f3ff; color: #5d77e7; font-size: 11px; }
+    .activity-icon.success { background: #edf8f3; color: #36a17b; }
+    .activity-copy { min-width: 0; }
+    .activity-title { color: #4a5870; font-size: 10px; font-weight: 600; }
+    .activity-time { margin-top: 2px; color: #9ba5b2; font-size: 9px; }
+    .workspace-view { display: none; }
+    .workspace-view.active { display: block; }
+    .view-intro { margin: -5px 0 17px; color: #8490a2; font-size: 12px; }
+    .wide-panel { margin-bottom: 15px; }
+    .table-row { display: grid; grid-template-columns: minmax(180px, 2fr) 100px minmax(130px, 1.4fr) 100px; gap: 12px; align-items: center; min-height: 61px; padding: 10px 18px; border-bottom: 1px solid #f0f2f6; color: #66738a; font-size: 11px; }
+    .table-row:last-child { border-bottom: 0; }
+    .table-head { min-height: 39px; background: #fafbfc; color: #98a2b0; font-size: 9px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+    .table-main { color: #39475f; font-weight: 650; }
+    .table-secondary { margin-top: 3px; color: #99a3b0; font-size: 9px; }
+    .recommendation { display: flex; gap: 12px; padding: 15px 17px; border-bottom: 1px solid #f0f2f6; }
+    .recommendation:last-child { border: 0; }
+    .recommendation-icon { display: grid; width: 28px; height: 28px; flex: 0 0 auto; place-items: center; border-radius: 8px; background: #f1f4ff; color: #5470eb; }
+    .recommendation-title { color: #39475e; font-size: 11px; font-weight: 700; }
+    .recommendation-copy { margin-top: 4px; color: #8591a2; font-size: 10px; }
+    .control-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(240px, .8fr); gap: 16px; align-items: start; }
+    .control-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 17px; border-bottom: 1px solid #f0f2f6; }
+    .control-row:last-child { border-bottom: 0; }
+    .control-name { color: #46546b; font-size: 11px; font-weight: 650; }
+    .control-description { margin-top: 3px; color: #9aa4b1; font-size: 9px; }
+    .switch { position: relative; width: 34px; height: 19px; flex: 0 0 auto; }
+    .switch input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .switch-track { position: absolute; inset: 0; border-radius: 12px; background: #d7dde7; cursor: pointer; transition: .18s; }
+    .switch-track:after { position: absolute; top: 3px; left: 3px; width: 13px; height: 13px; border-radius: 50%; background: white; box-shadow: 0 1px 2px #1c2b4026; content: ""; transition: .18s; }
+    .switch input:checked + .switch-track { background: #5574ed; }
+    .switch input:checked + .switch-track:after { transform: translateX(15px); }
+    .switch input:focus-visible + .switch-track { outline: 3px solid #8098ff66; outline-offset: 2px; }
+    .control-note { padding: 14px 16px; border-radius: 9px; background: #f5f7fc; color: #7c899e; font-size: 10px; }
+    .control-note strong { display: block; margin-bottom: 5px; color: #48566e; font-size: 11px; }
+    .toast { position: fixed; right: 24px; bottom: 24px; z-index: 5; max-width: min(390px, calc(100vw - 32px)); padding: 12px 16px; border: 1px solid #d9e8e1; border-radius: 9px; background: white; box-shadow: 0 10px 35px #23334c21; color: #3a745e; font-size: 12px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: .2s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .scan-indicator { display: none; align-items: center; gap: 6px; color: #6378d8; font-size: 10px; font-weight: 650; }
+    .scan-indicator.show { display: inline-flex; }
+    .spinner { width: 11px; height: 11px; border: 2px solid #dbe2ff; border-top-color: #5270ea; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1080px) {
+      .sidebar { width: 210px; }
+      .main { width: calc(100% - 210px); margin-left: 210px; }
+      .content { padding-right: 24px; padding-left: 24px; }
+      .topbar { padding-right: 24px; padding-left: 24px; }
+      .metric-grid { grid-template-columns: repeat(2, 1fr); }
+      .main-grid { grid-template-columns: 1fr; }
+      .right-column { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 700px) {
+      .sidebar { width: 62px; align-items: center; padding: 17px 8px; }
+      .brand { padding: 0 0 27px; }
+      .brand-name, .nav-label, .nav-item span:not(.nav-icon), .side-target, .side-footer > div:last-child { display: none; }
+      .nav { width: 100%; }
+      .nav-item { justify-content: center; padding: 11px 0; }
+      .nav-icon { font-size: 17px; }
+      .side-footer { justify-content: center; width: 100%; padding: 14px 0 0; }
+      .main { width: calc(100% - 62px); margin-left: 62px; }
+      .topbar { height: 56px; padding: 0 15px; }
+      .top-actions { gap: 8px; }
+      .safe-pill { display: none; }
+      .content { padding: 21px 14px 32px; }
+      .page-heading { align-items: flex-start; flex-direction: column; }
+      h1 { font-size: 22px; }
+      .heading-actions { width: 100%; }
+      .heading-actions .button { flex: 1; }
+      .target-card { align-items: flex-start; flex-direction: column; padding: 13px; }
+      .target-badges { padding-left: 52px; }
+      .metric-grid { gap: 9px; }
+      .metric-card { min-height: 105px; padding: 13px; }
+      .metric-value { font-size: 25px; }
+      .posture-body { grid-template-columns: 1fr; gap: 18px; }
+      .posture-details { grid-template-columns: repeat(2, 1fr); }
+      .mini-track { display: none; }
+      .right-column { grid-template-columns: 1fr; }
+      .chart-legend { gap: 7px; }
+      .table-row { grid-template-columns: minmax(120px, 1.5fr) 70px minmax(80px, 1fr); gap: 6px; padding-right: 10px; padding-left: 10px; font-size: 9px; }
+      .table-row > :last-child { display: none; }
+      .control-layout { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 390px) {
+      .crumb { font-size: 10px; }
+      .env-pill { font-size: 9px; }
+      .metric-label { max-width: 95px; font-size: 10px; }
+      .metric-icon { top: 12px; right: 11px; width: 25px; height: 25px; }
+      .metric-note { font-size: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 7.5 12 4l7 3.5v9L12 20l-7-3.5v-9Z" stroke="white" stroke-width="1.7"/><path d="m8.5 12 2.2 2.2 4.8-5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="brand-name">traceflow<span>ai</span></div>
+      </div>
+      <div class="nav-label">Workspace</div>
+      <nav class="nav" aria-label="Main navigation">
+        <button class="nav-item active" data-view="overview"><span class="nav-icon">▦</span><span>Overview</span></button>
+        <button class="nav-item" data-view="findings"><span class="nav-icon">⌕</span><span>Findings</span><span class="nav-count">4</span></button>
+        <button class="nav-item" data-view="remediation"><span class="nav-icon">↗</span><span>Remediation</span></button>
+        <button class="nav-item" data-view="controls"><span class="nav-icon">⚙</span><span>Target controls</span></button>
+      </nav>
+      <div class="side-target">
+        <div class="side-target-title">Active target</div>
+        <div class="target-line"><span class="target-dot"></span>NEXBANK demo</div>
+        <div class="target-address">localhost:3000</div>
+      </div>
+      <div class="side-footer">
+        <div class="avatar">AK</div>
+        <div><div class="profile-name">Alex Kim</div><div class="profile-role">Security analyst</div></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="crumb">Workspace <span aria-hidden="true">/</span> <strong id="crumb-label">Overview</strong></div>
+        <div class="top-actions">
+          <span class="env-pill"><span class="pill-dot"></span>Local environment</span>
+          <span class="safe-pill"><span class="pill-dot"></span>Scope restricted</span>
+          <button class="icon-button" aria-label="Notifications">♧</button>
+          <div class="avatar" style="width:29px;height:29px;font-size:10px">AK</div>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="page-heading">
+          <div>
+            <h1 id="page-title">Assessment overview</h1>
+            <p class="subtitle" id="page-subtitle">A clear view of your security posture and latest assessment activity.</p>
+          </div>
+          <div class="heading-actions">
+            <span class="scan-indicator" id="scan-indicator"><span class="spinner"></span>Running demo scan…</span>
+            <button class="button" id="baseline-button"><span class="button-icon">↺</span>Restore baseline</button>
+            <button class="button primary" id="scan-button"><span class="button-icon">▷</span>Run assessment</button>
+          </div>
+        </section>
+
+        <section class="workspace-view active" id="view-overview">
+          <div class="target-card">
+            <div class="target-info">
+              <div class="bank-mark">N</div>
+              <div>
+                <div class="target-title">NEXBANK — Digital Banking Platform</div>
+                <div class="target-url">http://localhost:3000 <span aria-hidden="true">·</span> Target ID: NX-LOCAL-001</div>
+              </div>
+            </div>
+            <div class="target-badges"><span class="badge local"><span class="pill-dot"></span>Local only</span><span class="badge demo">Synthetic demo</span></div>
+          </div>
+
+          <div class="metric-grid">
+            <article class="metric-card risk">
+              <div class="metric-label">Security posture</div><span class="metric-icon">◈</span>
+              <div class="metric-value-row"><span class="metric-value" id="metric-score">56</span><span class="metric-note">/ 100</span></div>
+              <div class="risk-track"><div class="risk-fill" id="risk-fill" style="width:44%"></div></div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-label">Open findings</div><span class="metric-icon">⚑</span>
+              <div class="metric-value-row"><span class="metric-value" id="metric-open">4</span><span class="metric-note" id="metric-open-note">across 3 severity levels</span></div>
+            </article>
+            <article class="metric-card resolved">
+              <div class="metric-label">Resolved this session</div><span class="metric-icon">✓</span>
+              <div class="metric-value-row"><span class="metric-value" id="metric-resolved">0</span><span class="metric-note">verified in demo</span></div>
+            </article>
+            <article class="metric-card scan">
+              <div class="metric-label">Last assessment</div><span class="metric-icon">◷</span>
+              <div class="metric-value-row"><span class="metric-value" style="font-size:20px;letter-spacing:-.4px" id="last-assessment">Just now</span></div>
+              <div class="metric-note" style="margin-top:7px">Prototype run · local scope</div>
+            </article>
+          </div>
+
+          <div class="main-grid">
+            <div>
+              <section class="panel">
+                <div class="panel-head"><div><div class="panel-title">Security posture</div><div class="panel-subtitle">Assessment summary by severity</div></div><span class="badge demo">DEMO DATA</span></div>
+                <div class="posture-body">
+                  <div class="score-wrap">
+                    <svg class="score-ring" viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="44"></circle><circle class="progress" id="score-progress" cx="50" cy="50" r="44"></circle></svg>
+                    <div class="score-center">                    <div class="score-number" id="score-number">56</div><div class="score-caption">out of 100</div><span class="score-status" id="score-status">Needs attention</span></div>
+                  </div>
+                  <div class="posture-details">
+                    <div class="posture-row"><span class="posture-label"><span class="severity-dot critical"></span>Critical</span><span class="mini-track"><span class="mini-fill critical"></span></span><span class="posture-count" id="count-critical">0</span></div>
+                    <div class="posture-row"><span class="posture-label"><span class="severity-dot high"></span>High</span><span class="mini-track"><span class="mini-fill high"></span></span><span class="posture-count" id="count-high">1</span></div>
+                    <div class="posture-row"><span class="posture-label"><span class="severity-dot medium"></span>Medium</span><span class="mini-track"><span class="mini-fill medium"></span></span><span class="posture-count" id="count-medium">2</span></div>
+                    <div class="posture-row"><span class="posture-label"><span class="severity-dot low"></span>Low</span><span class="mini-track"><span class="mini-fill low"></span></span><span class="posture-count" id="count-low">1</span></div>
+                  </div>
+                </div>
+              </section>
+              <section class="panel chart-panel">
+                <div class="panel-head"><div><div class="panel-title">Assessment history</div><div class="panel-subtitle">Findings detected vs. resolved</div></div><div class="chart-legend"><span class="legend-item"><span class="legend-dot"></span>Detected</span><span class="legend-item"><span class="legend-dot resolved"></span>Resolved</span></div></div>
+                <div class="chart-body">
+                  <div class="chart" aria-label="Illustrative assessment history bar chart">
+                    <div class="bar-group"><span class="bar" style="height:34%"></span><span class="bar resolved" style="height:0%"></span></div>
+                    <div class="bar-group"><span class="bar" style="height:52%"></span><span class="bar resolved" style="height:14%"></span></div>
+                    <div class="bar-group"><span class="bar" style="height:67%"></span><span class="bar resolved" style="height:27%"></span></div>
+                    <div class="bar-group"><span class="bar" style="height:82%"></span><span class="bar resolved" style="height:40%"></span></div>
+                    <div class="bar-group"><span class="bar" id="latest-detected" style="height:62%"></span><span class="bar resolved" id="latest-resolved" style="height:0%"></span></div>
+                  </div>
+                  <div class="chart-labels"><span>Nov 12</span><span>Nov 15</span><span>Nov 18</span><span>Nov 21</span><span>Today</span></div>
+                </div>
+              </section>
+              <section class="panel findings-panel" style="margin-top:16px">
+                <div class="panel-head"><div><div class="panel-title">Priority findings</div><div class="panel-subtitle">Items recommended for review</div></div><button class="text-link" data-goto="findings">View all findings →</button></div>
+                <div class="finding-list" id="overview-findings"></div>
+              </section>
+            </div>
+
+            <aside class="right-column">
+              <section class="panel">
+                <div class="panel-head"><div class="panel-title">Target application</div><span class="badge local">IN SCOPE</span></div>
+                <div class="target-preview">
+                  <div class="preview-header"><div class="preview-logo">NB</div><div><div class="preview-name">NEXBANK</div><div class="preview-url">localhost:3000</div></div><span class="preview-status" id="target-status">Attention</span></div>
+                  <div class="preview-stats"><div class="preview-stat"><div class="preview-number">8</div><div class="preview-label">Test modules</div></div><div class="preview-stat"><div class="preview-number" id="preview-findings">4</div><div class="preview-label">Findings</div></div><div class="preview-stat"><div class="preview-number">100%</div><div class="preview-label">Synthetic</div></div></div>
+                  <button class="button preview-button" data-goto="controls">Open demo controls <span aria-hidden="true">→</span></button>
+                </div>
+              </section>
+              <section class="panel">
+                <div class="panel-head"><div><div class="panel-title">Recent activity</div><div class="panel-subtitle">Latest workspace events</div></div><button class="text-link">View log</button></div>
+                <div class="activity-list">
+                  <div class="activity-item"><div class="activity-icon">⌕</div><div class="activity-copy"><div class="activity-title" id="activity-scan">Demo assessment completed</div><div class="activity-time" id="activity-time">Just now · NEXBANK local target</div></div></div>
+                  <div class="activity-item"><div class="activity-icon success">✓</div><div class="activity-copy"><div class="activity-title">Scope validation passed</div><div class="activity-time">Localhost target · synthetic dataset</div></div></div>
+                  <div class="activity-item"><div class="activity-icon">↗</div><div class="activity-copy"><div class="activity-title">NEXBANK added to workspace</div><div class="activity-time">Today · by Alex Kim</div></div></div>
+                </div>
+              </section>
+              <div class="control-note"><strong>Safe demo scope</strong>This prototype is designed for local walkthroughs. It does not connect to a real bank, payment provider, or assessment service.</div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="workspace-view" id="view-findings">
+          <p class="view-intro">Review illustrative findings from the sample NEXBANK assessment. Evidence below is demonstration content, not a live observation.</p>
+          <div class="panel wide-panel">
+            <div class="panel-head"><div><div class="panel-title">Findings register</div><div class="panel-subtitle">Synthetic assessment · local target · prototype data</div></div><span class="badge demo" id="finding-total">4 OPEN</span></div>
+            <div class="table-row table-head"><div>Finding</div><div>Severity</div><div>Category</div><div>Status</div></div>
+            <div id="findings-table"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><div class="panel-title">About this demo report</div><div class="panel-subtitle">Prototype limitations</div></div></div>
+            <div class="recommendation"><div class="recommendation-icon">ⓘ</div><div><div class="recommendation-title">Illustrative evidence only</div><div class="recommendation-copy">Finding titles, sample response snippets, and severity ratings are mock content for the round-two product walkthrough. No HTTP inspection or vulnerability verification occurs.</div></div></div>
+          </div>
+        </section>
+
+        <section class="workspace-view" id="view-remediation">
+          <p class="view-intro">A guided before-and-after walkthrough for the sample target. Changes are represented in this interface only.</p>
+          <div class="panel wide-panel">
+            <div class="panel-head"><div><div class="panel-title">Recommended improvements</div><div class="panel-subtitle">Suggested remediation for illustrative findings</div></div><button class="button primary" id="remediate-button">Apply demo baseline</button></div>
+            <div class="recommendation"><div class="recommendation-icon">01</div><div><div class="recommendation-title">Harden browser security policy</div><div class="recommendation-copy">Configure a restrictive Content Security Policy, frame-ancestors policy, and standard response security headers.</div></div></div>
+            <div class="recommendation"><div class="recommendation-icon">02</div><div><div class="recommendation-title">Review session and cookie settings</div><div class="recommendation-copy">Use secure, HttpOnly cookies with an appropriate SameSite policy and a defined session lifetime.</div></div></div>
+            <div class="recommendation"><div class="recommendation-icon">03</div><div><div class="recommendation-title">Limit cross-origin access</div><div class="recommendation-copy">Allow only explicitly approved origins, methods, and headers for the application’s intended clients.</div></div></div>
+            <div class="recommendation"><div class="recommendation-icon">04</div><div><div class="recommendation-title">Enforce authorization and minimize responses</div><div class="recommendation-copy">Verify role and record ownership on every request; return only the data needed by the client.</div></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><div class="panel-title">Verification history</div><div class="panel-subtitle">Demo state changes during this session</div></div></div>
+            <div id="verification-history"><div class="recommendation"><div class="recommendation-icon">◷</div><div><div class="recommendation-title">No remediation run yet</div><div class="recommendation-copy">Use “Apply demo baseline” or “Restore baseline” to preview the rescan workflow.</div></div></div></div>
+          </div>
+        </section>
+
+        <section class="workspace-view" id="view-controls">
+          <p class="view-intro">Toggle sample misconfiguration categories to preview how an assessment dashboard could change. Controls affect only this page’s demo state.</p>
+          <div class="control-layout">
+            <div class="panel">
+              <div class="panel-head"><div><div class="panel-title">NEXBANK demo controls</div><div class="panel-subtitle">Illustrative configuration · no server changes</div></div><span class="badge demo">UI ONLY</span></div>
+              <div id="control-list"></div>
+              <div style="display:flex;justify-content:flex-end;gap:8px;padding:13px 16px;border-top:1px solid #edf0f5">
+                <button class="button" id="reset-controls">Reset demo state</button>
+                <button class="button primary" id="apply-controls">Save demo state</button>
+              </div>
+            </div>
+            <div>
+              <div class="control-note" style="margin-bottom:14px"><strong>Local-only presentation</strong>The controls do not change HTTP headers, cookies, authentication, API behavior, or any running target. They only update the prototype’s sample findings and posture score.</div>
+              <div class="panel">
+                <div class="panel-head"><div><div class="panel-title">Demo target details</div><div class="panel-subtitle">Synthetic application profile</div></div></div>
+                <div class="recommendation"><div class="recommendation-icon">⌂</div><div><div class="recommendation-title">NEXBANK Digital Banking</div><div class="recommendation-copy">Local presentation target · localhost:3000</div></div></div>
+                <div class="recommendation"><div class="recommendation-icon">▤</div><div><div class="recommendation-title">Sample dataset</div><div class="recommendation-copy">Generated customer and transaction placeholders only</div></div></div>
+                <div class="recommendation"><div class="recommendation-icon">⛨</div><div><div class="recommendation-title">Assessment scope</div><div class="recommendation-copy">Restricted to this local prototype walkthrough</div></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const categoryDetails = [
+      { id: "headers", name: "Security headers", description: "Illustrative missing browser security protections", severity: "Medium", title: "Incomplete security header policy", category: "HTTP security", evidence: "Sample: selected response headers not configured" },
+      { id: "cookies", name: "Session cookies", description: "Illustrative cookie attribute and expiry concerns", severity: "High", title: "Session cookie policy needs review", category: "Session management", evidence: "Sample: cookie attributes require secure defaults" },
+      { id: "cors", name: "Cross-origin policy", description: "Illustrative origin and method policy concern", severity: "Medium", title: "Overly broad cross-origin policy", category: "API configuration", evidence: "Sample: allowed origins are broader than intended" },
+      { id: "auth", name: "Authentication settings", description: "Illustrative password and lockout configuration", severity: "High", title: "Authentication policy is too permissive", category: "Authentication", evidence: "Sample: account protection settings need review" },
+      { id: "disclosure", name: "Information disclosure", description: "Illustrative debug metadata and verbose errors", severity: "Low", title: "Verbose diagnostic details exposed", category: "Information disclosure", evidence: "Sample: debug metadata present in demonstration response" },
+      { id: "access", name: "Access control", description: "Illustrative role or ownership validation gap", severity: "High", title: "Authorization checks need review", category: "Access control", evidence: "Sample: selected synthetic route lacks expected policy" },
+      { id: "debug", name: "Debug mode", description: "Illustrative development diagnostics enabled", severity: "Medium", title: "Development diagnostics enabled", category: "Server configuration", evidence: "Sample: debug indicators shown in demo profile" },
+      { id: "api", name: "API responses", description: "Illustrative response minimization concern", severity: "Low", title: "API response includes excess sample fields", category: "API configuration", evidence: "Sample: demonstration payload includes unnecessary metadata" }
+    ];
+    const initialActive = ["headers", "cookies", "cors", "disclosure"];
+    let activeCategories = new Set(initialActive);
+    let resolvedCount = 0;
+    let scanTimer;
+
+    const severityOrder = { High: 0, Medium: 1, Low: 2 };
+    const esc = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+    const getActiveFindings = () => categoryDetails.filter((item) => activeCategories.has(item.id)).sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+    const severityClass = (severity) => severity.toLowerCase();
+
+    function renderFindings() {
+      const findings = getActiveFindings();
+      const markup = findings.length ? findings.map((item) => `
+        <div class="finding" tabindex="0" role="button" aria-label="${esc(item.title)}. Illustrative finding.">
+          <span class="finding-stripe ${severityClass(item.severity)}"></span>
+          <span><span class="finding-name">${esc(item.title)}</span><span class="finding-meta"><span class="finding-tag ${severityClass(item.severity)}">${esc(item.severity)}</span><span>${esc(item.category)}</span><span>·</span><span>Illustrative</span></span></span>
+          <span class="finding-arrow">›</span>
+        </div>`).join("") : `<div style="padding:21px 17px;color:#8591a2;font-size:11px">No open illustrative findings. Run a demo assessment to preview the clean-state report.</div>`;
+      document.getElementById("overview-findings").innerHTML = markup;
+      document.getElementById("findings-table").innerHTML = findings.length ? findings.map((item) => `
+        <div class="table-row"><div><div class="table-main">${esc(item.title)}</div><div class="table-secondary">${esc(item.evidence)}</div></div><div><span class="finding-tag ${severityClass(item.severity)}">${esc(item.severity)}</span></div><div>${esc(item.category)}</div><div><span class="badge local">Open · demo</span></div></div>`).join("") :
+        `<div class="table-row"><div class="table-main">No open illustrative findings</div><div>—</div><div>—</div><div><span class="badge local">Baseline preview</span></div></div>`;
+      document.getElementById("finding-total").textContent = `${findings.length} OPEN`;
+      document.getElementById("metric-open").textContent = findings.length;
+      document.getElementById("preview-findings").textContent = findings.length;
+      document.getElementById("metric-open-note").textContent = findings.length ? `across ${new Set(findings.map((item) => item.severity)).size} severity levels` : "no open demo findings";
+      const counts = { High: 0, Medium: 0, Low: 0 };
+      findings.forEach((item) => counts[item.severity]++);
+      document.getElementById("count-critical").textContent = "0";
+      document.getElementById("count-high").textContent = counts.High;
+      document.getElementById("count-medium").textContent = counts.Medium;
+      document.getElementById("count-low").textContent = counts.Low;
+      document.querySelector(".mini-fill.high").style.width = `${Math.min(100, counts.High * 50)}%`;
+      document.querySelector(".mini-fill.medium").style.width = `${Math.min(100, counts.Medium * 50)}%`;
+      document.querySelector(".mini-fill.low").style.width = `${Math.min(100, counts.Low * 50)}%`;
+      const score = Math.max(0, 100 - findings.reduce((sum, item) => sum + ({ High: 19, Medium: 10, Low: 5 }[item.severity]), 0));
+      document.getElementById("metric-score").textContent = score;
+      document.getElementById("score-number").textContent = score;
+      document.getElementById("risk-fill").style.width = `${100 - score}%`;
+      document.getElementById("score-progress").style.strokeDashoffset = `${276 * (1 - score / 100)}`;
+      document.getElementById("score-progress").style.stroke = findings.length ? (score < 60 ? "#e8a34c" : "#df7370") : "#34a77d";
+      document.getElementById("score-status").textContent = findings.length ? (score < 60 ? "Needs attention" : "Review recommended") : "Baseline preview";
+      document.getElementById("score-status").style.background = findings.length ? "#fff4e5" : "#edf8f3";
+      document.getElementById("score-status").style.color = findings.length ? "#bd7929" : "#288267";
+      document.getElementById("target-status").textContent = findings.length ? "Attention" : "Baseline";
+      document.getElementById("target-status").style.background = findings.length ? "#fff1ef" : "#edf8f3";
+      document.getElementById("target-status").style.color = findings.length ? "#cf5e60" : "#288267";
+      document.getElementById("metric-resolved").textContent = resolvedCount;
+      document.getElementById("latest-detected").style.height = `${Math.max(4, findings.length * 15)}%`;
+      document.getElementById("latest-resolved").style.height = `${resolvedCount ? Math.min(75, resolvedCount * 12) : 0}%`;
+    }
+
+    function renderControls() {
+      document.getElementById("control-list").innerHTML = categoryDetails.map((item) => `
+        <div class="control-row"><div><div class="control-name">${esc(item.name)}</div><div class="control-description">${esc(item.description)}</div></div>
+        <label class="switch" aria-label="Toggle ${esc(item.name)}"><input type="checkbox" data-category="${esc(item.id)}" ${activeCategories.has(item.id) ? "checked" : ""}><span class="switch-track"></span></label></div>`).join("");
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2800);
+    }
+
+    function setView(name) {
+      const titles = { overview: ["Overview", "Assessment overview", "A clear view of your security posture and latest assessment activity."], findings: ["Findings", "Findings register", "Review the sample report and its illustrative evidence."], remediation: ["Remediation", "Remediation workflow", "Turn sample recommendations into a before-and-after walkthrough."], controls: ["Target controls", "NEXBANK demo controls", "Preview controlled target settings in this interface-only prototype."] };
+      document.querySelectorAll(".workspace-view").forEach((view) => view.classList.remove("active"));
+      document.getElementById(`view-${name}`).classList.add("active");
+      document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === name));
+      document.getElementById("crumb-label").textContent = titles[name][0];
+      document.getElementById("page-title").textContent = titles[name][1];
+      document.getElementById("page-subtitle").textContent = titles[name][2];
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function restoreBaseline() {
+      activeCategories = new Set();
+      resolvedCount = categoryDetails.filter((item) => initialActive.includes(item.id)).length;
+      renderControls();
+      renderFindings();
+      document.getElementById("verification-history").innerHTML = `<div class="recommendation"><div class="recommendation-icon">✓</div><div><div class="recommendation-title">Demo baseline applied</div><div class="recommendation-copy">Illustrative settings reset in the UI · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · no target changes made</div></div></div>`;
+      document.getElementById("last-assessment").textContent = "Just now";
+      document.getElementById("activity-scan").textContent = "Demo baseline restored";
+      document.getElementById("activity-time").textContent = "Just now · interface-only state";
+      showToast("Demo baseline preview applied. No server settings were changed.");
+    }
+
+    function runAssessment() {
+      if (scanTimer) return;
+      const button = document.getElementById("scan-button");
+      button.disabled = true;
+      document.getElementById("scan-indicator").classList.add("show");
+      scanTimer = setTimeout(() => {
+        scanTimer = null;
+        button.disabled = false;
+        document.getElementById("scan-indicator").classList.remove("show");
+        renderFindings();
+        document.getElementById("last-assessment").textContent = "Just now";
+        document.getElementById("activity-scan").textContent = "Demo assessment completed";
+        document.getElementById("activity-time").textContent = "Just now · illustrative UI state";
+        document.getElementById("verification-history").innerHTML = `<div class="recommendation"><div class="recommendation-icon">⌕</div><div><div class="recommendation-title">Demo assessment completed</div><div class="recommendation-copy">${getActiveFindings().length} illustrative findings shown · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · no network requests sent</div></div></div>`;
+        showToast("Prototype assessment complete. Results are illustrative UI data only.");
+      }, 950);
+    }
+
+    document.querySelectorAll(".nav-item").forEach((item) => item.addEventListener("click", () => setView(item.dataset.view)));
+    document.querySelectorAll("[data-goto]").forEach((item) => item.addEventListener("click", () => setView(item.dataset.goto)));
+    document.getElementById("scan-button").addEventListener("click", runAssessment);
+    document.getElementById("baseline-button").addEventListener("click", restoreBaseline);
+    document.getElementById("remediate-button").addEventListener("click", restoreBaseline);
+    document.getElementById("reset-controls").addEventListener("click", () => {
+      activeCategories = new Set(initialActive);
+      renderControls();
+      showToast("Demo controls reset to the illustrative starting state.");
+    });
+    document.getElementById("apply-controls").addEventListener("click", () => {
+      const selected = [...document.querySelectorAll("#control-list input:checked")].map((input) => input.dataset.category);
+      activeCategories = new Set(selected);
+      resolvedCount = Math.max(0, categoryDetails.filter((item) => initialActive.includes(item.id)).length - getActiveFindings().filter((item) => initialActive.includes(item.id)).length);
+      renderFindings();
+      showToast("Demo state saved in this page only. Run assessment to preview the report.");
+    });
+    renderControls();
+    renderFindings();
+  </script>
+</body>
+</html>
